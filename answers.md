@@ -12,7 +12,7 @@ Place all written answers from `recitation-08.md` here for easier grading.
 
 - **1b)**
 
-
+O(n) = n^2
 
 - **2b)**
 
