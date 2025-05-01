@@ -1,109 +1,96 @@
-import heapq
-from collections import deque
-from heapq import heappush, heappop 
+import math, queue
+from collections import Counter
 
-def shortest_shortest_path(graph, source):
-    """
-    Params: 
-      graph.....a graph represented as a dict where each key is a vertex
-                and the value is a set of (vertex, weight) tuples (as in the test case)
-      source....the source node
-      
-    Returns:
-      a dict where each key is a vertex and the value is a tuple of
-      (shortest path weight, shortest path number of edges). See test case for example.
-    """
+####### Problem 3 #######
 
-    dist = {node: float('inf') for node in graph}
-    dist[source] = 0
-    edge_count = {node: float('inf') for node in graph}
-    edge_count[source] = 0
-    pq = [(0, 0, source)]
-    while pq:
-        current_dist, current_edges, current_node = heapq.heappop(pq)
+test_cases = [('book', 'back'), ('kookaburra', 'kookybird'), ('elephant', 'relevant'), ('AAAGAATTCA', 'AAATCA')]
+alignments = [('b--ook', 'bac--k'), ('kook-ab-urr-a', 'kooky-bi-r-d-'), ('relev--ant','-ele-phant'), ('AAAGAATTCA', 'AAA---T-CA')]
+
+def MED(S, T):
+    # TO DO - modify to account for insertions, deletions and substitutions
+
+    if (S == ""):
+        return(len(T))
+    elif (T == ""):
+        return(len(S))
+    else:
+        if (S[0] == T[0]):
+            return(MED(S[1:], T[1:]))
+        else:
+            return(1 + min(MED(S, T[1:]), MED(S[1:], T)))
 
 
-        if current_dist > dist[current_node]:
-            continue
+def fast_MED(S, T, MED={}):
+    print(S)
+    print(T)
+    if (S, T) in MED:
+        return MED[(S, T)]
+    if S == "":
+        return len(T)
+    elif T == "":
+        return len(S)
 
 
-        for neighbor, weight in graph[current_node]:
-            new_dist = current_dist + weight
-            new_edges = current_edges + 1
+    if S[0] == T[0]:
+
+        result = fast_MED(S[1:], T[1:], MED)
+    else:
+
+        insert = fast_MED(S, T[1:], MED)
+        delete = fast_MED(S[1:], T, MED)
+        substitute = fast_MED(S[1:], T[1:], MED)
+
+        result = 1 + min(insert, delete, substitute)
 
 
-            if new_dist < dist[neighbor] or (new_dist == dist[neighbor] and new_edges < edge_count[neighbor]):
-                dist[neighbor] = new_dist
-                edge_count[neighbor] = new_edges
-                heapq.heappush(pq, (new_dist, new_edges, neighbor))
-
-
-    result = {node: (dist[node], edge_count[node]) for node in graph}
+    MED[(S, T)] = result
 
     return result
 
+def fast_align_MED(S, T, MED = {}):
+    len_S = len(S)
+    len_T = len(T)
 
 
+    MED = [[0 for _ in range(len_T + 1)] for _ in range(len_S + 1)]
+    for i in range(len_S + 1):
+        MED[i][0] = i
+    for j in range(len_T + 1):
+        MED[0][j] = j
+
+    # Calculate edit distances
+    for i in range(1, len_S + 1):
+        for j in range(1, len_T + 1):
+            cost = 0 if S[i - 1] == T[j - 1] else 1
+            MED[i][j] = min(
+                MED[i - 1][j] + 1,      # Deletion
+                MED[i][j - 1] + 1,      # Insertion
+                MED[i - 1][j - 1] + cost  # Substitution
+            )
+
+    # Traceback for alignment
+    alignment_S = ""
+    alignment_T = ""
+    i = len_S
+    j = len_T
+    while i > 0 or j > 0:
+        if i > 0 and j > 0 and MED[i][j] == MED[i - 1][j - 1] + (0 if S[i - 1] == T[j - 1] else 1):
+            alignment_S = S[i - 1] + alignment_S
+            alignment_T = T[j - 1] + alignment_T
+            i -= 1
+            j -= 1
+        elif i > 0 and MED[i][j] == MED[i - 1][j] + 1:
+            alignment_S = S[i - 1] + alignment_S
+            alignment_T = "-" + alignment_T
+            i -= 1
+        else:
+            alignment_S = "-" + alignment_S
+            alignment_T = T[j - 1] + alignment_T
+            j -= 1
+    print(alignment_S)
+    print(alignment_T)
+
+    return MED[len_S][len_T], alignment_S, alignment_T
 
 
-
-
-    
-def bfs_path(graph, source):
-    """
-    Returns:
-      a dict where each key is a vertex and the value is the parent of 
-      that vertex in the shortest path tree.
-    """
-    parent = {source: None}
-    queue = deque([source])
-    while queue:
-        node = queue.popleft()
-        for neighbor in graph[node]:
-            if neighbor not in parent:
-                parent[neighbor] = node
-                queue.append(neighbor)
-    return parent
-
-
-def get_sample_graph():
-     return {'s': {'a', 'b'},
-            'a': {'b'},
-            'b': {'c'},
-            'c': {'a', 'd'},
-            'd': {}
-            }
-
-
-    
-def get_path(parents, destination):
-    """
-    Returns:
-      The shortest path from the source node to this destination node 
-      (excluding the destination node itself). See test_get_path for an example.
-    """
-    path = []
-    current_node = destination
-    while current_node is not None:
-        path.append(current_node)
-        current_node = parents.get(current_node)
-    if not path or path[-1] != next((node for node, parent in parents.items() if parent is None), None):
-        return []
-    result = ""
-    for item in  path[::-1]:
-        result +=item
-    result = result[:-1]
-    return result
-
-
-
-
-
-graph = {
-                's': {('a', 1), ('c', 4)},
-                'a': {('b', 2)}, # 'a': {'b'},
-                'b': {('c', 1), ('d', 4)},
-                'c': {('d', 3)},
-                'd': {},
-                'e': {('d', 0)}
-            }
+print(fast_align_MED('kookaburra', 'kookybird'))
